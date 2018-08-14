@@ -3,6 +3,8 @@
 #NOTE: You must either copy this script to a directory stored in PATH (eg. /usr/local/bin), or add the directory where it is stored to PATH, otherwise use "bash multi_admixture ..."
 
 HELP="
+multi_admixture v.1.1
+
 multi_admixture is a shell script for running ADMIXTURE across a range of k and/or over multiple iterations. ADMIXTURE must be installed prior to running this script.
 
 USAGE: mutli_admixture [-f filename.ped] [-k int] [optional arguments]
@@ -90,27 +92,29 @@ do
 		shift
 		;;
 		-cv)
-		CV="$2"
 		CVon=YES
-		if [[ -z $CV ]]
+		if [[ -z "${2}" || "${2}" == -* ]]
 		then
 			CV=10
+			echo "CV threshold: $CV"
+			shift
+		else
+			CV="$2"
+			echo "CV threshold: $CV"
+			shift;shift
 		fi
-		echo "CV threshold: $CV"
-		shift
-		shift
 		;;
 		-s|--seed)
-		SEED="$2"
-		if [[ -z $SEED ]]
+		if [[ -z "$2" || "$2" == -* ]]
 		then
 			SEED=YES
 			echo "Random seed: \$RANDOM"
+			shift
 		else
+			SEED="$2"
 			echo "Random seed: $SEED"
+			shift;shift
 		fi
-		shift
-		shift
 		;;
 		-EM|--algorithm)
 		EM=YES
@@ -221,12 +225,7 @@ then
 	echo "Will perform supervised analysis."
 elif [[ "${SUPERVISED}" == NO && "${PROJECTION}" == YES ]]
 then
-	echo "will perform projection analysis."
-fi
-
-if [[ -z "${CV}" ]]
-then
-	CV=10
+	echo "Will perform projection analysis."
 fi
 
 if [[ -n "${EPSILON}" && ${EPSILON%.*} -ge 1 ]]
@@ -303,7 +302,7 @@ then
 		COMMAND="$COMMAND --haploid"
 	fi
 	COMMAND="$COMMAND | tee log.out"
-	eval $COMMAND
+	eval OMMAND
 		exit 1
 	echo
 	echo
@@ -370,7 +369,7 @@ then
 			COMMAND="$COMMAND --haploid"
 		fi
 		COMMAND="$COMMAND | tee log.out"
-		eval $COMMAND
+		eval OMMAND
 		cd ../
 		N=$((N+1))
 	done
@@ -439,7 +438,7 @@ then
 			COMMAND="$COMMAND --haploid"
 		fi
 		COMMAND="$COMMAND | tee log_$K.out"
-		eval $COMMAND
+		eval OMMAND
 		if [[ $CVon == YES ]]
 		then
 			grep -h "CV" log_$K.out >> CV_scores.txt
@@ -509,7 +508,7 @@ else #Range of k, multiple iterations
 			COMMAND="$COMMAND --haploid"
 		fi
 		COMMAND="$COMMAND | tee log_$K.out"
-		eval $COMMAND
+		eval OMMAND
 		if [[ $CVon == YES ]]
 		then
 			grep -h "CV" log_$K.out >> CV_scores$N.txt
