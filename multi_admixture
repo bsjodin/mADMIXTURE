@@ -3,9 +3,9 @@
 #NOTE: You must either copy this script to a directory stored in PATH (eg. /usr/local/bin), or add the directory where it is stored to PATH, otherwise use "bash multi_admixture ..."
 
 HELP="
-multi_admixture v.1.1
+multiADMIXTURE v.1.1
 
-multi_admixture is a shell script for running ADMIXTURE across a range of k and/or over multiple iterations. ADMIXTURE must be installed prior to running this script.
+multiADMIXTURE is a shell script for running ADMIXTURE across a range of k and/or over multiple iterations. ADMIXTURE must be installed prior to running this script.
 
 USAGE: mutli_admixture [-f filename.ped] [-k int] [optional arguments]
 
@@ -49,37 +49,31 @@ do
 		;;
 		-f|--file)
 		FILE="$2"
-		echo "Input file: $FILE"
-		shift # past argument
-		shift # past value
+		shift
+		shift
 		;;
 		-k|--minK)
 		MINK="$2"
-		echo "Minimum k: $MINK"
-		shift # past argument
-		shift # past value
+		shift
+		shift
 		;;
 		-K|--maxK)
 		MAXK="$2"
-		echo "Max k: $MAXK"
 		shift
 		shift
 		;;
 		-i|--iterations)
 		ITERATIONS="$2"
-		echo "Iterations: $ITERATIONS"
-		shift # past argument
-		shift # past value
+		shift
+		shift
 		;;
 		-j|--threads)
 		THREADS="$2"
-		echo "Requested parallel processing. Will use $THREADS threads."
 		shift
 		shift
 		;;
 		-B|--bootstraps)
 		BOOTSTRAPS="$2"
-		echo "Bootstrapping enabled. Replicates: $BOOTSTRAPS"
 		shift
 		shift
 		;;
@@ -96,11 +90,9 @@ do
 		if [[ -z "${2}" || "${2}" == -* ]]
 		then
 			CV=10
-			echo "CV threshold: $CV"
 			shift
 		else
 			CV="$2"
-			echo "CV threshold: $CV"
 			shift;shift
 		fi
 		;;
@@ -108,52 +100,44 @@ do
 		if [[ -z "$2" || "$2" == -* ]]
 		then
 			SEED=YES
-			echo "Random seed: \$RANDOM"
 			shift
 		else
 			SEED="$2"
-			echo "Random seed: $SEED"
 			shift;shift
 		fi
 		;;
 		-EM|--algorithm)
 		EM=YES
-		echo "Using EM algorithm instead of block-relaxation."
 		shift
 		;;
 		-C|--majC)
 		MAJC="$2"
-		echo "Major termination criterion: $MAJC"
 		shift
 		shift
 		;;
 		-c|--minC)
 		MINC="$2"
-		echo "Minor termination criterion: $MINC"
 		shift
 		shift
 		;;
 		-a|--accel)
-		ACCEL="$2"
-		echo "Accerlation method changed: $ACCEL"
+		ACon=YES
+		ACCEL="${2}"
 		shift
 		shift
 		;;
 		-e|--epsilon)
 		EPSILON="$2"
-		echo "Penalized estimation enabled. Epsilon: $EPSILON"
 		shift
 		shift
 		;;
 		-l|--lambda)
 		LAMBDA="$2"
-		echo "Penalized estimation enabled. Lambda: $LAMBDA"
 		shift
 		shift
 		;;
 		-h|--haploid)
 		HAPLOID=YES
-		echo "Data is haploid."
 		shift
 		;;
 	esac
@@ -161,16 +145,16 @@ done
 
 ERROR=0
 
-#These commands check that all the necessary values are present, and sets defaults for optional arguments
-if [[ -z "${FILE}" ]]
+#These commands check for errors while parsing variables
+if [[ -z "${FILE}" || $FILE == -* ]]
 then
-  echo "Please specify input file (-f | --file)."
+  echo "ERROR: Please specify input file (-f | --file)."
   ERROR=1
 fi
 
-if [[ -z "${MINK}" ]]
+if [[ -z "${MINK}" || $MINK == -* ]]
 then
-  echo "Please specify at least one k value (-k | --minK)."
+  echo "ERROR: Please specify at least one k value (-k | --minK)."
   ERROR=1
 fi
 
@@ -183,7 +167,7 @@ fi
 
 if [[ "${KRANGE}" == YES && "${MAXK}" -le "${MINK}" ]]
 then
-  echo "Error: Max K less than or equal to min K. Use a greater value (-K | --maxK)."
+  echo "ERROR: Max K less than or equal to min K. Use a greater value (-K | --maxK)."
   ERROR=1
 fi
 
@@ -192,11 +176,70 @@ then
 	ITERATIONS=1
 fi
 
+if [[ "${SUPERVISED}" == YES && "${PROJECTION}" == YES ]]
+then
+	echo "ERROR: Please specify only one of -S or -P."
+	ERROR=1
+fi
+
+if [[ $ACon == YES && ( "${ACCEL}" != none && "${ACCEL}" != qn* ) ]]
+then
+	echo "ERROR: Please use a valid acceleration method. See ADMIXTURE manual for details."
+	ERROR=1
+fi
+
+if [[ -n "${EPSILON}" && ${EPSILON%.*} -ge 1 ]]
+then
+  echo "ERROR: Epsilon must be less than 1."
+  ERROR=1
+fi
+
+if [[ "${ERROR}" -ne "0" ]]
+then
+  echo "
+USAGE: multi_admixture -f filename.ped -k int [optional arguments]
+"
+  exit 1
+fi
+
+echo "Successfully parsed variables."
+
+#List parameters to double-check for accuracy
+echo "
+Input file: $FILE
+Minimum k: $MINK"
+
+if [[ -n $MAXK ]]
+then
+	echo "Maximum k: $MAXK"
+fi
+
+echo "Iterations: $ITERATIONS"
+
+if [[ $HAPLOID == YES ]]
+then
+	echo "Data is haploid."
+fi
+
+if [[ $CVon == YES ]]
+then
+	echo "Cross-validation enabled. Threshold: $CV"
+fi
+
+if [[ $SEED == YES ]]
+then
+	echo "Random seed: \$RANDOM"
+elif [[ -n $SEED && $SEED != YES ]]
+then
+	echo "Random seed: $SEED"
+fi
+
 if [[ -z "${THREADS}" ]]
 then
 	PARALLEL=NO
 else
 	PARALLEL=YES
+	echo "Parallel processing enabled. Number of threads: $THREADS"
 fi
 
 if [[ -z "${BOOTSTRAPS}" ]]
@@ -204,43 +247,51 @@ then
 	BOOT=NO
 else
 	BOOT=YES
+	echo "Bootstrapping enabled. Number of replicates: $BOOTSTRAPS"
 fi
 
-if [[ -z "${SUPERVISED}" ]]
+if [[ $PROJECTION == YES ]]
 then
-	SUPERVISED=NO
+	echo "Projection analysis enabled."
 fi
 
-if [[ -z "${PROJECTION}" ]]
+if [[ $SUPERVISED == YES ]]
 then
-	PROJECTION=NO
+	echo "Supervised analysis enabled."
 fi
 
-if [[ "${SUPERVISED}" == YES && "${PROJECTION}" == YES ]]
+if [[ $ACon == YES ]]
 then
-	echo "Please specify only one of -S or -P."
-	ERROR=1
-elif [[ "${SUPERVISED}" == YES && "${PROJECTION}" == NO ]]
-then
-	echo "Will perform supervised analysis."
-elif [[ "${SUPERVISED}" == NO && "${PROJECTION}" == YES ]]
-then
-	echo "Will perform projection analysis."
+	echo "Acceleration method changed: $ACCEL"
 fi
 
-if [[ -n "${EPSILON}" && ${EPSILON%.*} -ge 1 ]]
+if [[ $EM == YES ]]
 then
-  echo "Epsilon must be less than 1."
-  ERROR=1
-fi
-	
-if [[ "${ERROR}" -ne "0" ]]
-then
-  echo -e ${USAGE}
-  exit 1
+	echo "Using EM algorithm instead of block-relaxation."
 fi
 
-echo "Successfully parsed variables."
+if [[ -n $MAJC ]]
+then
+	echo "Major termination criterion: $MAJC"
+fi
+
+if [[ -n $MINC ]]
+then
+	echo "Minor termination criterion: $MINC"
+fi
+
+if [[ -n $EPSILON && -z $LAMBDA ]]
+then
+	echo "Penalized estimation enabled. Epsilon: $EPSILON; Lambda: DEFAULT"
+elif [[ -n $EPSILON && -n $LAMBDA ]]
+then
+	echo "Penalized estimation enabled. Epsilon: $EPSILON; Lambda: $LAMBDA"
+elif [[ -z $EPSILON && -n $LAMBDA ]]
+then
+	echo "Penalized estimation enabled. Epsilon: DEFAULT; Lambda: $LAMBDA"
+fi
+echo
+sleep 2
 
 #Builds and runs the script
 if [[ $ITERATIONS -eq 1 && "${KRANGE}" == NO ]] #Single K, one iteration
@@ -302,10 +353,8 @@ then
 		COMMAND="$COMMAND --haploid"
 	fi
 	COMMAND="$COMMAND | tee log.out"
-	eval OMMAND
+	eval $COMMAND
 		exit 1
-	echo
-	echo
 elif [[ $ITERATIONS -gt 1 && "${KRANGE}" == NO ]] #Single K, multiple iterations
 then
 	N=1
@@ -369,7 +418,7 @@ then
 			COMMAND="$COMMAND --haploid"
 		fi
 		COMMAND="$COMMAND | tee log.out"
-		eval OMMAND
+		eval $COMMAND
 		cd ../
 		N=$((N+1))
 	done
@@ -438,7 +487,7 @@ then
 			COMMAND="$COMMAND --haploid"
 		fi
 		COMMAND="$COMMAND | tee log_$K.out"
-		eval OMMAND
+		eval $COMMAND
 		if [[ $CVon == YES ]]
 		then
 			grep -h "CV" log_$K.out >> CV_scores.txt
@@ -508,7 +557,7 @@ else #Range of k, multiple iterations
 			COMMAND="$COMMAND --haploid"
 		fi
 		COMMAND="$COMMAND | tee log_$K.out"
-		eval OMMAND
+		eval $COMMAND
 		if [[ $CVon == YES ]]
 		then
 			grep -h "CV" log_$K.out >> CV_scores$N.txt
