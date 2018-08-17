@@ -56,6 +56,11 @@ contact: bryson.sjodin@ubc.ca
 		;;
 		-f|--file)
 		FILE="$2"
+		regex="(^.+)\."
+		if [[ $FILE =~ $regex ]]
+		then
+			FILENAME="${BASH_REMATCH[1]}"
+		fi
 		shift
 		shift
 		;;
@@ -189,6 +194,30 @@ then
 	ERROR=1
 fi
 
+if [[ $SUPERVISED == YES ]]
+then
+	if ! ls *.pop >/dev/null 2>&1
+	then
+	echo "ERROR: Make sure .pop file is in current working directory."
+	ERROR=1
+	elif ! ls $FILENAME.pop >/dev/null 2>&1
+	then
+	echo "ERROR: .pop file prefix does not match input file prefix: $FILENAME"
+	ERROR=1
+fi;fi
+
+if [[ $PROJECTION == YES ]]
+then
+	if ! ls *.P.in >/dev/null 2>&1
+	then
+	echo "ERROR: Make sure .P.in file is in current working directory."
+	ERROR=1
+	elif ! ls $FILENAME.$MINK.P.in >/dev/null 2>&1
+	then
+	echo "ERROR: .P.in file prefix does not match input file prefix or k value: $FILENAME.$MINK"
+	ERROR=1
+fi;fi
+
 if [[ $ACon == YES && ( "${ACCEL}" != none && "${ACCEL}" != qn* ) ]]
 then
 	echo "ERROR: Please use a valid acceleration method. See ADMIXTURE manual for details."
@@ -299,6 +328,7 @@ then
 fi
 echo
 sleep 2
+exit 1
 
 #Builds and runs the script
 if [[ $ITERATIONS -eq 1 && "${KRANGE}" == NO ]] #Single K, one iteration
