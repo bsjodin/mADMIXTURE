@@ -1,5 +1,5 @@
 # mADMIXTURE v.1.0.0
-<b>mADMIXTURE</b> is a program which simplifies running ADMIXTURE over a range of k and multiple iterations. It operates with a single command, erasing the need for writing custom scripts or manually entering each ADMIXTURE command.
+<b>mADMIXTURE</b> is a program which simplifies running <b>ADMIXTURE</b> over a range of k and multiple iterations. It operates with a single command, erasing the need for writing custom scripts or manually entering each <b>ADMIXTURE</b> command.
 
 To download, enter the following command into terminal:
 
@@ -10,7 +10,7 @@ To download, enter the following command into terminal:
 <pre class="highlight">$ cd mADMIXTURE
 $ chmod 777 madmixture</pre>
 
-Then, copy mADMIXTURE into a PATH directory (eg./usr/local/bin):
+Then, copy <b>mADMIXTURE</b> into a PATH directory (eg./usr/local/bin):
 <pre class="highlight">$ sudo cp madmixture /usr/local/bin/</pre>
 
 <strong>Basic Usage:</strong><br>
