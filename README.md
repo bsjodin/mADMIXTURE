@@ -9,7 +9,7 @@ git clone https://github.com/bsjodin/mADMIXTURE
  
  First, change the file permissions:
 
-<p style="color:blue;font-family:courier;">chmod 777 madmixture<\p>
+<p style="color:blue;font-family:courier;">chmod 777 madmixture</p>
 
 Then, copy mADMIXTURE into a PATH directory (eg./usr/local/bin)
 
