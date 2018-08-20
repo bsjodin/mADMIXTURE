@@ -9,14 +9,14 @@ git clone https://github.com/bsjodin/mADMIXTURE
  
  First, change the file permissions:
 
-  chmod 777 madmixture
+<p style="color:blue;font-family:courier;">chmod 777 madmixture<\p>
 
 Then, copy mADMIXTURE into a PATH directory (eg./usr/local/bin)
 
-  sudo cp madmixture /usr/local/bin/
+\tsudo cp madmixture /usr/local/bin/
 
 <strong>Usage:</strong>
 
 To use <b>mADMIXTURE</b>, simply run:
 
-  madmixture -f input_file.ped -k integer [optional arguments]
+\tmadmixture -f input_file.ped -k integer [optional arguments]
