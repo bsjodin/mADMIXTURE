@@ -1,0 +1,412 @@
+#!/usr/bin/env bash
+
+#NOTE: You must either copy this script to a directory stored in PATH (eg. /usr/local/bin), or add the directory where it is stored to PATH, otherwise use "bash multi_admixture ..."
+
+HELP="
+multiADMIXTURE v.1.1
+
+multiADMIXTURE is a shell script for running ADMIXTURE across a range of k and/or over multiple iterations. ADMIXTURE must be installed prior to running this script.
+
+USAGE: mutli_admixture [-f filename.ped] [-k int] [optional arguments]
+
+REQUIRED ARGUMENTS:
+-f|--file <filename>  : Input PLINK file with extension (must be in current working directory).
+-k|--minK <int>       : Minimum k. If -K is not used, this will be the only k tested.
+
+OPTIONAL ARGUMENTS:
+-K|--maxK <int>       : Maximum k. Optional. This must be larger than -k
+-i|--iterations <int> : Number of iterations. If not set, default is 1.
+-j|--threads <int>    : Enables multi-threaded mode use n threads.
+-cv <float/int>       : Enables cross-validation and sets the threshold. If no value is given with -cv, threshold defaults to 10.
+-B|--bootstraps <int> : Enables bootstrapping and specifies number of replicates.
+-S|--supervised       : Enables supervised mode. Must include a .pop file (see ADMIXTURE manual for details).
+-P|--projection       : Enables projection analysis. Must include a reference .P file (see ADMIXTURE manual for details).
+-s|--seed <int/str>   : Sets the random seed. If no value is given with -s, defaults to \$RANDOM.
+-EM|--algorithm       : Use EM algorithm instead of block-relaxation.
+-C|--majC <float/int> : Sets the major termination criterion.
+-c|--minC <float/int> : Sets the minor termination criterion.
+-a|--accel <str>      : Changes the acceleration method used (see ADMIXTURE manual for options).
+-e|--epsilon <float>  : Enables penalized estimation and sets epsilon (must be less than 1).
+-l|--lambda <float>   : Enables penalized estimation and sets lambda.
+--haploid             : Use haploid data (default is diploid).
+--help                : Displays help message.
+"
+
+if [[ $# -eq 0 ]]
+then
+	echo "$HELP"
+	exit 1
+fi
+
+#Parse out variables from the command line
+while [[ $# -gt 0 ]]
+do
+	key="$1"
+	case $key in
+		--help)
+		echo "$HELP"
+		exit 1
+		;;
+		--version)
+		echo "multiADMIXTURE v.1.1
+author: Bryson Sjodin
+last updated: Aug.17,2018
+contact: bryson.sjodin@ubc.ca"
+		exit 1
+		;;
+		-f|--file)
+		FILE="$2"
+		regex="(^.+)\."
+		if [[ $FILE =~ $regex ]]
+		then
+			FILENAME="${BASH_REMATCH[1]}"
+		fi
+		shift
+		shift
+		;;
+		-k|--minK)
+		MINK="$2"
+		shift
+		shift
+		;;
+		-K|--maxK)
+		MAXK="$2"
+		shift
+		shift
+		;;
+		-i|--iterations)
+		ITERATIONS="$2"
+		shift
+		shift
+		;;
+		-j|--threads)
+		THREADS="$2"
+		shift
+		shift
+		;;
+		-B|--bootstraps)
+		BOOTSTRAPS="$2"
+		shift
+		shift
+		;;
+		-S|--supervised)
+		SUPERVISED=YES
+		shift
+		;;
+		-P|--projection)
+		PROJECTION=YES
+		shift
+		;;
+		-cv)
+		CVon=YES
+		if [[ -z "${2}" || "${2}" == -* ]]
+		then
+			CV=10
+			shift
+		else
+			CV="$2"
+			shift;shift
+		fi
+		;;
+		-s|--seed)
+		if [[ -z "$2" || "$2" == -* ]]
+		then
+			SEED=YES
+			shift
+		else
+			SEED="$2"
+			shift;shift
+		fi
+		;;
+		-EM|--algorithm)
+		EM=YES
+		shift
+		;;
+		-C|--majC)
+		MAJC="$2"
+		shift
+		shift
+		;;
+		-c|--minC)
+		MINC="$2"
+		shift
+		shift
+		;;
+		-a|--accel)
+		ACon=YES
+		ACCEL="${2}"
+		shift
+		shift
+		;;
+		-e|--epsilon)
+		EPSILON="$2"
+		shift
+		shift
+		;;
+		-l|--lambda)
+		LAMBDA="$2"
+		shift
+		shift
+		;;
+		-h|--haploid)
+		HAPLOID=YES
+		shift
+		;;
+	esac
+done
+
+ERROR=0
+
+#These commands check for errors while parsing variables
+if [[ -z "${FILE}" || $FILE == -* ]]
+then
+  echo "ERROR: Please specify input file (-f | --file)."
+  ERROR=1
+fi
+
+if [[ ! -f "$FILE" ]]
+then
+	echo "ERROR: Please ensure input file is in current working directory."
+	ERROR=1
+fi
+
+if [[ -z "${MINK}" || $MINK == -* ]]
+then
+  echo "ERROR: Please specify at least one k value (-k | --minK)."
+  ERROR=1
+fi
+
+if [[ -z "${MAXK}" ]]
+then
+	KRANGE=NO
+else
+	KRANGE=YES
+fi
+
+if [[ "${KRANGE}" == YES && "${MAXK}" -le "${MINK}" ]]
+then
+  echo "ERROR: Max K less than or equal to min K. Use a greater value (-K | --maxK)."
+  ERROR=1
+fi
+
+if [[ -z "${ITERATIONS}" ]]
+then
+	ITERATIONS=1
+fi
+
+if [[ "${SUPERVISED}" == YES && "${PROJECTION}" == YES ]]
+then
+	echo "ERROR: Please specify only one of -S or -P."
+	ERROR=1
+fi
+
+if [[ $SUPERVISED == YES ]]
+then
+	if ! ls *.pop >/dev/null 2>&1
+	then
+	echo "ERROR: Make sure .pop file is in current working directory."
+	ERROR=1
+	elif ! ls $FILENAME.pop >/dev/null 2>&1
+	then
+	echo "ERROR: .pop file prefix does not match input file prefix: $FILENAME"
+	ERROR=1
+fi;fi
+
+if [[ $PROJECTION == YES ]]
+then
+	if ! ls *.P.in >/dev/null 2>&1
+	then
+	echo "ERROR: Make sure .P.in file is in current working directory."
+	ERROR=1
+	elif ! ls $FILENAME.$MINK.P.in >/dev/null 2>&1
+	then
+	echo "ERROR: .P.in file prefix does not match input file prefix or k value: $FILENAME.$MINK"
+	ERROR=1
+fi;fi
+
+if [[ $ACon == YES && ( "${ACCEL}" != none && "${ACCEL}" != qn* ) ]]
+then
+	echo "ERROR: Please use a valid acceleration method. See ADMIXTURE manual for details."
+	ERROR=1
+fi
+
+if [[ -n "${EPSILON}" && ${EPSILON%.*} -ge 1 ]]
+then
+  echo "ERROR: Epsilon must be less than 1."
+  ERROR=1
+fi
+
+if [[ "${ERROR}" -ne "0" ]]
+then
+  echo "
+USAGE: multi_admixture -f filename.ped -k int [optional arguments]
+"
+  exit 1
+fi
+
+echo "Successfully parsed variables."
+
+#List parameters to double-check for accuracy and builds command
+COMMAND=""
+
+echo "
+Input file: $FILE
+Minimum k: $MINK"
+
+if [[ -n $MAXK ]]
+then
+	echo "Maximum k: $MAXK"
+fi
+
+echo "Iterations: $ITERATIONS"
+
+if [[ $HAPLOID == YES ]]
+then
+	echo "Data is haploid."
+	COMMAND=$COMMAND" --haploid"
+fi
+
+if [[ $CVon == YES ]]
+then
+	echo "Cross-validation enabled. Threshold: $CV"
+	COMMAND=$COMMAND" --cv=$CV"
+fi
+
+if [[ $SEED == YES ]]
+then
+	echo "Random seed: \$RANDOM"
+	COMMAND=$COMMAND" -s $RANDOM"
+elif [[ -n $SEED && $SEED != YES ]]
+then
+	echo "Random seed: $SEED"
+	COMMAND=$COMMAND" -s $SEED"
+fi
+
+if [[ -z "${THREADS}" ]]
+then
+	PARALLEL=NO
+else
+	PARALLEL=YES
+	echo "Parallel processing enabled. Number of threads: $THREADS"
+	COMMAND=$COMMAND" -j${THREADS}"
+fi
+
+if [[ -z "${BOOTSTRAPS}" ]]
+then
+	BOOT=NO
+else
+	BOOT=YES
+	echo "Bootstrapping enabled. Number of replicates: $BOOTSTRAPS"
+	COMMAND=$COMMAND" -B${BOOTSTRAPS}"
+fi
+
+if [[ $PROJECTION == YES ]]
+then
+	echo "Projection analysis enabled."
+	COMMAND=$COMMAND" -P"
+fi
+
+if [[ $SUPERVISED == YES ]]
+then
+	echo "Supervised analysis enabled."
+	COMMAND=$COMMAND" -S"
+fi
+
+if [[ $ACon == YES ]]
+then
+	echo "Acceleration method changed: $ACCEL"
+	COMMAND=$COMMAND" -a $ACCEL"
+fi
+
+if [[ $EM == YES ]]
+then
+	echo "Using EM algorithm instead of block-relaxation."
+	COMMAND=$COMMAND" -EM"
+fi
+
+if [[ -n $MAJC ]]
+then
+	echo "Major termination criterion: $MAJC"
+	COMMAND=$COMMAND" -C $MAJC"
+fi
+
+if [[ -n $MINC ]]
+then
+	echo "Minor termination criterion: $MINC"
+	COMMAND=$COMMAND" -c $MINC"
+fi
+
+if [[ -n $EPSILON && -z $LAMBDA ]]
+then
+	echo "Penalized estimation enabled. Epsilon: $EPSILON; Lambda: DEFAULT"
+	COMMAND=$COMMAND" -e $EPSILON"
+elif [[ -n $EPSILON && -n $LAMBDA ]]
+then
+	echo "Penalized estimation enabled. Epsilon: $EPSILON; Lambda: $LAMBDA"
+	COMMAND=$COMMAND" -e $EPSILON -l $LAMBDA"
+elif [[ -z $EPSILON && -n $LAMBDA ]]
+then
+	echo "Penalized estimation enabled. Epsilon: DEFAULT; Lambda: $LAMBDA"
+	COMMAND=$COMMAND" -l $LAMBDA"
+fi
+echo
+sleep 2
+
+#Runs the script based on parameters
+if [[ $ITERATIONS -eq 1 && "${KRANGE}" == NO ]] #Single K, one iteration
+then
+	COMMAND="admixture $FILE $MINK"
+	COMMAND="$COMMAND | tee log.out"
+	echo $COMMAND
+		exit 1
+elif [[ $ITERATIONS -gt 1 && "${KRANGE}" == NO ]] #Single K, multiple iterations
+then
+	N=1
+	while [[ $N -le $ITERATIONS ]];do
+		mkdir run_$N
+		cd run_$N
+		COMMAND="admixture ../$FILE $MINK"
+		COMMAND="$COMMAND | tee log.out"
+		echo $COMMAND
+		cd ../
+		N=$((N+1))
+	done
+	if [[ $CVon == YES ]]
+	then
+		grep -h "CV" ./run*/log.out >> CV_scores.txt
+	fi
+elif [[ $ITERATIONS -eq 1 && "${KRANGE}" == YES ]] #Range of K, one iteration
+then
+	for K in $(eval echo "{$MINK..$MAXK}");do
+		mkdir P_outs Q_outs logs
+		COMMAND="admixture $FILE $K"
+		COMMAND="$COMMAND | tee log_$K.out"
+		echo $COMMAND
+		if [[ $CVon == YES ]]
+		then
+			grep -h "CV" log_$K.out >> CV_scores.txt
+		fi
+		mv *.Q ./Q_outs;mv *.P ./P_outs/;mv log_$K.out ./logs/
+	done
+else #Range of k, multiple iterations
+	for N in $(eval echo "{1..$ITERATIONS}");do
+	mkdir run_$N
+	cd run_$N
+	for K in $(eval echo "{$MINK..$MAXK}");do
+		mkdir P_outs Q_outs logs
+		COMMAND="admixture ../$FILE $K"
+		COMMAND="$COMMAND | tee log_$K.out"
+		echo $COMMAND
+		if [[ $CVon == YES ]]
+		then
+			grep -h "CV" log_$K.out >> CV_scores$N.txt
+		fi
+		mv *.Q ./Q_outs;mv *.P ./P_outs/;mv log_$K.out ./logs/
+	done
+	cd ../
+	done
+	if [[ $CVon == YES ]]
+	then
+		cat ./run*/CV_scores* >> allCV.txt
+	fi
+fi
