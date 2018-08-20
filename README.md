@@ -3,15 +3,16 @@
 
 To download, enter the following command into terminal:
 
-git clone https://github.com/bsjodin/mADMIXTURE
+<pre class="highlight">$ git clone https://github.com/bsjodin/mADMIXTURE</pre>
 
 <strong>Quick Install:</strong><br>
- First, change the file permissions:
-<blockquote>>chmod 777 madmixture</blockquote>
+ First, navigate into directory and change the file permissions:
+<pre class="highlight">$ cd mADMIXTURE
+$ chmod 777 madmixture</pre>
 
 Then, copy mADMIXTURE into a PATH directory (eg./usr/local/bin)
-<blockquote>>sudo cp madmixture /usr/local/bin/</blockquote>
+<rre class="highlight">$ sudo cp madmixture /usr/local/bin/</pre>
 
 <strong>Usage:</strong><br>
 To use <b>mADMIXTURE</b>, simply run:
-<blockquote>>madmixture -f <i>input_file.ped</i> -k <i>integer</i> [optional arguments]<blockquote>
+<pre class="highlight">$ madmixture -f <i>input_file.ped</i> -k <i>integer</i> [optional arguments]</pre>
