@@ -6,7 +6,6 @@ To download, enter the following command into terminal:
 git clone https://github.com/bsjodin/mADMIXTURE
 
 <strong>Quick Install:</strong>
- 
  First, change the file permissions:
 
 <p style="color:blue;font-family:courier;">chmod 777 madmixture</p>
@@ -16,7 +15,6 @@ Then, copy mADMIXTURE into a PATH directory (eg./usr/local/bin)
 \tsudo cp madmixture /usr/local/bin/
 
 <strong>Usage:</strong>
-
 To use <b>mADMIXTURE</b>, simply run:
 
 \tmadmixture -f input_file.ped -k integer [optional arguments]
