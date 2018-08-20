@@ -7,11 +7,11 @@ git clone https://github.com/bsjodin/mADMIXTURE
 
 <strong>Quick Install:</strong><br>
  First, change the file permissions:
-<blockquote>chmod 777 madmixture</blockquote>
+<blockquote>>chmod 777 madmixture</blockquote>
 
 Then, copy mADMIXTURE into a PATH directory (eg./usr/local/bin)
-<blockquote>sudo cp madmixture /usr/local/bin/</blockquote>
+<blockquote>>sudo cp madmixture /usr/local/bin/</blockquote>
 
 <strong>Usage:</strong><br>
 To use <b>mADMIXTURE</b>, simply run:
-<blockquote>tmadmixture -f input_file.ped -k integer [optional arguments]<blockquote>
+<blockquote>>madmixture -f <i>input_file.ped</i> -k <i>integer</i> [optional arguments]<blockquote>
