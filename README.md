@@ -1,4 +1,4 @@
-# mADMIXTURE v.1.1
+# mADMIXTURE v.1.0.0
 <b>mADMIXTURE</b> is a program which simplifies running ADMIXTURE over a range of k and multiple iterations. It operates with a single command, erasing the need for writing custom scripts or manually entering each ADMIXTURE command.
 
 To download, enter the following command into terminal:
