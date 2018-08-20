@@ -13,6 +13,6 @@ $ chmod 777 madmixture</pre>
 Then, copy mADMIXTURE into a PATH directory (eg./usr/local/bin):
 <pre class="highlight">$ sudo cp madmixture /usr/local/bin/</pre>
 
-<strong>Usage:</strong><br>
+<strong>Basic Usage:</strong><br>
 To use <b>mADMIXTURE</b>, simply run:
 <pre class="highlight">$ madmixture -f <i>input_file.ped</i> -k <i>integer</i> [optional arguments]</pre>
