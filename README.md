@@ -11,7 +11,7 @@ To download, enter the following command into terminal:
 $ chmod 777 madmixture</pre>
 
 Then, copy mADMIXTURE into a PATH directory (eg./usr/local/bin)
-<rre class="highlight">$ sudo cp madmixture /usr/local/bin/</pre>
+<pre class="highlight">$ sudo cp madmixture /usr/local/bin/</pre>
 
 <strong>Usage:</strong><br>
 To use <b>mADMIXTURE</b>, simply run:
