@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 
-#NOTE: You must either copy this script to a directory stored in PATH (eg. /usr/local/bin), or add the directory where it is stored to PATH, otherwise use "bash multi_admixture ..."
+#NOTE: Please run "bash install.sh" before using this program!
 
 HELP="
-multiADMIXTURE v.1.0.0
-Author: Bryson Sjodin
+mADMIXTURE v.1.0.0
 
-multiADMIXTURE is a shell script for running ADMIXTURE across a range of k and/or over multiple iterations. ADMIXTURE must be installed prior to running this script.
+mADMIXTURE is a shell script for running ADMIXTURE across a range of k and/or over multiple iterations. ADMIXTURE must be installed prior to running this script.
 
-USAGE: mutli_admixture [-f filename.ped] [-k int] [optional arguments]
+USAGE: madmixture [-f filename.ped] [-k int] [optional arguments]
 
 REQUIRED ARGUMENTS:
 -f|--file <filename>  : Input PLINK file with extension (must be in current working directory).
@@ -49,10 +48,12 @@ do
 		exit 1
 		;;
 		--version)
-		echo "multiADMIXTURE v.1.0.0
+		echo "
+mADMIXTURE v.1.0.0
 author: Bryson Sjodin
 last updated: Aug.19,2018
-contact: bryson.sjodin@ubc.ca"
+contact: bryson.sjodin@ubc.ca
+"
 		exit 1
 		;;
 		-f|--file)
@@ -159,6 +160,9 @@ done
 ERROR=0
 
 #These commands check for errors while parsing variables
+echo "
+mADMIXTURE v.1.0.0
+"
 if [[ -z "${FILE}" || $FILE == -* ]]
 then
   echo "ERROR: Please specify input file (-f | --file)."
@@ -240,7 +244,7 @@ fi
 if [[ "${ERROR}" -ne "0" ]]
 then
   echo "
-USAGE: multi_admixture -f filename.ped -k int [optional arguments]
+USAGE: madmixture -f filename.ped -k int [optional arguments]
 "
   exit 1
 fi
