@@ -3,7 +3,7 @@
 chmod 755 madmixture
 
 if [[ -d /usr/local/bin ]];then
-	cp -i madmixture /usr/local/bin
+	sudo cp madmixture /usr/local/bin
 	echo "madmixture successfully installed."
 else
 	echo "/usr/local/bin doesn't not exist! Editing PATH instead."

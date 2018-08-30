@@ -4,8 +4,11 @@
 
 HELP="
 mADMIXTURE v.1.0.0
+Author: Bryson Sjodin
+Last updated: Aug.29,2018
+Contact: bryson.sjodin@ubc.ca
 
-mADMIXTURE is a shell script for running ADMIXTURE across a range of k and/or over multiple iterations. ADMIXTURE must be installed prior to running this script.
+mADMIXTURE is a wrapper-script for running ADMIXTURE across a range of k and/or over multiple iterations. ADMIXTURE must be installed prior to running this script.
 
 USAGE: madmixture [-f filename.ped] [-k int] [optional arguments]
 
@@ -29,6 +32,7 @@ OPTIONAL ARGUMENTS:
 -e|--epsilon <float>  : Enables penalized estimation and sets epsilon (must be less than 1).
 -l|--lambda <float>   : Enables penalized estimation and sets lambda.
 --haploid             : Use haploid data (default is diploid).
+--sort-by-k           : Sorts outputs by k (default, sorts by run). Only applicable for multiple iterations AND k
 --help                : Displays help message.
 "
 
@@ -50,9 +54,9 @@ do
 		--version)
 		echo "
 mADMIXTURE v.1.0.0
-author: Bryson Sjodin
-last updated: Aug.19,2018
-contact: bryson.sjodin@ubc.ca
+Author: Bryson Sjodin
+Last updated: Aug.29,2018
+Contact: bryson.sjodin@ubc.ca
 "
 		exit 1
 		;;
@@ -154,6 +158,10 @@ contact: bryson.sjodin@ubc.ca
 		HAPLOID=YES
 		shift
 		;;
+		--sort-by-k)
+		SORTK=YES
+		shift
+		;;
 	esac
 done
 
@@ -241,6 +249,12 @@ then
   ERROR=1
 fi
 
+if [[ $SORTK == YES && ( "${KRANGE}" == NO || "${ITERATIONS}" -eq 1 ) ]]
+then
+	echo "ERROR: --sort-by-k only works for a multiple iterations AND range of k."
+	ERROR=1
+fi
+
 if [[ "${ERROR}" -ne "0" ]]
 then
   echo "
@@ -252,7 +266,7 @@ fi
 echo "Successfully parsed variables."
 
 #List parameters to double-check for accuracy and builds command
-COMMAND=""
+OPTIONS=
 
 echo "
 Input file: $FILE
@@ -268,23 +282,23 @@ echo "Iterations: $ITERATIONS"
 if [[ $HAPLOID == YES ]]
 then
 	echo "Data is haploid."
-	COMMAND=$COMMAND" --haploid"
+	OPTIONS="$OPTIONS --haploid"
 fi
 
 if [[ $CVon == YES ]]
 then
 	echo "Cross-validation enabled. Threshold: $CV"
-	COMMAND=$COMMAND" --cv=$CV"
+	OPTIONS="$OPTIONS --cv=$CV"
 fi
 
 if [[ $SEED == YES ]]
 then
 	echo "Random seed: \$RANDOM"
-	COMMAND=$COMMAND" -s $RANDOM"
+	OPTIONS="$OPTIONS -s \$RANDOM"
 elif [[ -n $SEED && $SEED != YES ]]
 then
 	echo "Random seed: $SEED"
-	COMMAND=$COMMAND" -s $SEED"
+	OPTIONS="$OPTIONS -s $SEED"
 fi
 
 if [[ -z "${THREADS}" ]]
@@ -293,7 +307,7 @@ then
 else
 	PARALLEL=YES
 	echo "Parallel processing enabled. Number of threads: $THREADS"
-	COMMAND=$COMMAND" -j${THREADS}"
+	OPTIONS="$OPTIONS -j${THREADS}"
 fi
 
 if [[ -z "${BOOTSTRAPS}" ]]
@@ -302,67 +316,72 @@ then
 else
 	BOOT=YES
 	echo "Bootstrapping enabled. Number of replicates: $BOOTSTRAPS"
-	COMMAND=$COMMAND" -B${BOOTSTRAPS}"
+	OPTIONS="$OPTIONS -B${BOOTSTRAPS}"
 fi
 
 if [[ $PROJECTION == YES ]]
 then
 	echo "Projection analysis enabled."
-	COMMAND=$COMMAND" -P"
+	OPTIONS="$OPTIONS -P"
 fi
 
 if [[ $SUPERVISED == YES ]]
 then
 	echo "Supervised analysis enabled."
-	COMMAND=$COMMAND" -S"
+	OPTIONS="$OPTIONS --supervised"
 fi
 
 if [[ $ACon == YES ]]
 then
 	echo "Acceleration method changed: $ACCEL"
-	COMMAND=$COMMAND" -a $ACCEL"
+	OPTIONS="$OPTIONS -a $ACCEL"
 fi
 
 if [[ $EM == YES ]]
 then
 	echo "Using EM algorithm instead of block-relaxation."
-	COMMAND=$COMMAND" -EM"
+	OPTIONS="$OPTIONS -m EM"
 fi
 
 if [[ -n $MAJC ]]
 then
 	echo "Major termination criterion: $MAJC"
-	COMMAND=$COMMAND" -C $MAJC"
+	OPTIONS="$OPTIONS -C $MAJC"
 fi
 
 if [[ -n $MINC ]]
 then
 	echo "Minor termination criterion: $MINC"
-	COMMAND=$COMMAND" -c $MINC"
+	OPTIONS="$OPTIONS -c $MINC"
 fi
 
 if [[ -n $EPSILON && -z $LAMBDA ]]
 then
 	echo "Penalized estimation enabled. Epsilon: $EPSILON; Lambda: DEFAULT"
-	COMMAND=$COMMAND" -e $EPSILON"
+	OPTIONS="$OPTIONS -e $EPSILON"
 elif [[ -n $EPSILON && -n $LAMBDA ]]
 then
 	echo "Penalized estimation enabled. Epsilon: $EPSILON; Lambda: $LAMBDA"
-	COMMAND=$COMMAND" -e $EPSILON -l $LAMBDA"
+	OPTIONS="$OPTIONS -e $EPSILON -l $LAMBDA"
 elif [[ -z $EPSILON && -n $LAMBDA ]]
 then
 	echo "Penalized estimation enabled. Epsilon: DEFAULT; Lambda: $LAMBDA"
-	COMMAND=$COMMAND" -l $LAMBDA"
+	OPTIONS="$OPTIONS -l $LAMBDA"
 fi
+
+if [[ $SORTK == YES ]]
+then
+	echo "Outputs will be sorted by k."
+fi
+
 echo
-sleep 2
+sleep 3
 
 #Runs the script based on parameters
 if [[ $ITERATIONS -eq 1 && "${KRANGE}" == NO ]] #Single K, one iteration
 then
-	COMMAND="admixture $FILE $MINK"
-	COMMAND="$COMMAND | tee log.out"
-	echo $COMMAND
+	COMMAND="admixture $FILE $MINK $OPTIONS | tee k${MINK}.log"
+	eval $COMMAND
 		exit 1
 elif [[ $ITERATIONS -gt 1 && "${KRANGE}" == NO ]] #Single K, multiple iterations
 then
@@ -370,48 +389,70 @@ then
 	while [[ $N -le $ITERATIONS ]];do
 		mkdir run_$N
 		cd run_$N
-		COMMAND="admixture ../$FILE $MINK"
-		COMMAND="$COMMAND | tee log.out"
-		echo $COMMAND
+		COMMAND="admixture ../$FILE $MINK $OPTIONS | tee run$N.log"
+		eval $COMMAND
 		cd ../
 		N=$((N+1))
 	done
 	if [[ $CVon == YES ]]
 	then
-		grep -h "CV" ./run*/log.out >> CV_scores.txt
+		grep -h "CV" ./run*/run*.log >> CV_scores.txt
 	fi
 elif [[ $ITERATIONS -eq 1 && "${KRANGE}" == YES ]] #Range of K, one iteration
 then
+	mkdir P_outs Q_outs logs
 	for K in $(eval echo "{$MINK..$MAXK}");do
-		mkdir P_outs Q_outs logs
-		COMMAND="admixture $FILE $K"
-		COMMAND="$COMMAND | tee log_$K.out"
-		echo $COMMAND
+		COMMAND="admixture $FILE $K $OPTIONS | tee k${K}.log"
+		eval $COMMAND
 		if [[ $CVon == YES ]]
 		then
-			grep -h "CV" log_$K.out >> CV_scores.txt
+			grep -h "CV" *.log >> CV_scores.txt
 		fi
-		mv *.Q ./Q_outs;mv *.P ./P_outs/;mv log_$K.out ./logs/
+		mv *.Q* ./Q_outs;mv *.P* ./P_outs/;mv *.log ./logs/
 	done
-else #Range of k, multiple iterations
+elif [[ $SORTK == YES ]] #Range of K, multiple iterations, sorted by k (not run)
+then
+	for K in $(eval echo "{$MINK..$MAXK}");do
+		mkdir K"${K}"
+		cd K"${K}"
+		for N in $(eval echo "{1..$ITERATIONS}");do
+			mkdir run_$N
+			cd run_$N
+			COMMAND="admixture ../../$FILE $K $OPTIONS | tee k${K}_run${N}.log"
+			eval $COMMAND
+			if [[ $CVon == YES ]]
+			then
+				grep -h "CV" *.log >> ../CVscores_k${K}.txt
+			fi
+			cd ../
+		done
+		cd ../
+	done
+	if [[ $CVon == YES ]]
+	then
+		cat ./K*/CVscores* >> allCV.txt
+		awk '{sum4[$3] += $4; count4[$3]++}; END{ for (id in sum4) { print id, sum4[id]/count4[id] } }' allCV.txt | sort -t = -k2,2n >> meanCV.txt
+	fi			
+else #Range of k, multiple iterations, sorted by run
 	for N in $(eval echo "{1..$ITERATIONS}");do
 	mkdir run_$N
 	cd run_$N
+	mkdir P_outs Q_outs logs
 	for K in $(eval echo "{$MINK..$MAXK}");do
-		mkdir P_outs Q_outs logs
-		COMMAND="admixture ../$FILE $K"
-		COMMAND="$COMMAND | tee log_$K.out"
-		echo $COMMAND
+		COMMAND="admixture ../$FILE $K $OPTIONS | tee run${N}_k${K}.log"
+		eval $COMMAND
 		if [[ $CVon == YES ]]
 		then
-			grep -h "CV" log_$K.out >> CV_scores$N.txt
+			grep -h "CV" run*.log >> CVscores_run$N.txt
 		fi
-		mv *.Q ./Q_outs;mv *.P ./P_outs/;mv log_$K.out ./logs/
+		mv *.Q* ./Q_outs;mv *.P* ./P_outs/;mv run*.log ./logs/
 	done
 	cd ../
 	done
 	if [[ $CVon == YES ]]
 	then
-		cat ./run*/CV_scores* >> allCV.txt
+		cat ./run*/CVscores* >> allCV.txt
+		awk '{sum4[$3] += $4; count4[$3]++}; END{ for (id in sum4) { print id, sum4[id]/count4[id] } }' allCV.txt | sort -t = -k2,2n >> meanCV.txt
+
 	fi
 fi
