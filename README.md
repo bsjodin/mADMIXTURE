@@ -6,12 +6,11 @@ To download, enter the following command into terminal:
 <pre class="highlight">$ git clone https://github.com/bsjodin/mADMIXTURE</pre>
 
 <strong>Quick Install:</strong><br>
- First, navigate into directory and change the file permissions:
-<pre class="highlight">$ cd mADMIXTURE
-$ chmod 755 madmixture</pre>
+<b>mADMIXTURE</b> can easily be installed using the supplied "install.sh" script:
 
-Then, copy <b>mADMIXTURE</b> into a PATH directory (eg./usr/local/bin):
-<pre class="highlight">$ sudo cp -i madmixture /usr/local/bin/</pre>
+<pre class="highlight">$ bash install.sh</pre>
+
+This will require you to have <i>sudo</i> privileges.
 
 <strong>Basic Usage:</strong><br>
 To use <b>mADMIXTURE</b>, simply run:
