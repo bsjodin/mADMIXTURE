@@ -2,11 +2,33 @@
 
 chmod 755 madmixture
 
-if [[ -d /usr/local/bin ]];then
+BIN=0
+
+if [[ -f /usr/local/bin/madmixture ]];then
+	BIN=1
+	echo "madmixture already in installed. Do you wish to update? [y/n]"
+	read answer
+	if [[ "$answer" =~ [Yy] ]];then
+		sudo cp madmixture /usr/local/bin
+		echo;echo "madmxiture successfully updated."
+	else
+		echo;echo "madmixture not updated."
+	fi
+	exit
+elif [[ -d /usr/local/bin || ! -f /usr/local/bin/madmixture ]];then
 	sudo cp madmixture /usr/local/bin
-	echo "madmixture successfully installed."
+	if [[ -f /usr/local/bin/madmixture ]];then
+		BIN=1
+		echo "madmixture successfully installed."
+	else
+		echo "Error: madmixture not installed in /usr/local/bin. Will update PATH instead."
+		sleep 2
+	fi
 else
-	echo "/usr/local/bin doesn't not exist! Editing PATH instead."
+	echo "/usr/local/bin does not exist! Editing PATH instead."
+fi
+
+if [[ "$BIN" -eq 0 ]];then
 	if [[ -f ~/.bashrc ]];then
 		echo "export PATH=$PWD:\$PATH" >> ~/.bashrc
 		source ~/.bashrc
