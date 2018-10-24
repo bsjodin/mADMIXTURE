@@ -3,7 +3,7 @@
 #NOTE: Please run "bash install.sh" before using this program!
 
 HELP="
-mADMIXTURE v.1.0.0
+mADMIXTURE v.1.0.1
 Author: Bryson Sjodin
 Last updated: Aug.29,2018
 Contact: bryson.sjodin@ubc.ca
@@ -388,10 +388,14 @@ then
 	N=1
 	while [[ $N -le $ITERATIONS ]];do
 		mkdir run_$N
+		if [[ $PROJECTION == YES ]];then
+			cp *.P.in ./run_$N/;fi
 		cd run_$N
 		COMMAND="admixture ../$FILE $MINK $OPTIONS | tee run$N.log"
 		eval $COMMAND
 		cd ../
+		if [[ $PROJECTION == YES ]];then
+			rm ./run_$N/*.P.in;fi
 		N=$((N+1))
 	done
 	if [[ $CVon == YES ]]
