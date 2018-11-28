@@ -5,7 +5,7 @@
 HELP="
 mADMIXTURE v.1.0.1
 Author: Bryson Sjodin
-Last updated: Oct.23,2018
+Last updated: Nov.28,2018
 Contact: bryson.sjodin@ubc.ca
 
 mADMIXTURE is a wrapper-script for running ADMIXTURE across a range of k and/or over multiple iterations. ADMIXTURE must be installed prior to running this script.
@@ -55,7 +55,7 @@ do
 		echo "
 mADMIXTURE v.1.0.1
 Author: Bryson Sjodin
-Last updated: Oct.23,2018
+Last updated: Nov.28,2018
 Contact: bryson.sjodin@ubc.ca
 "
 		exit 1
@@ -460,3 +460,5 @@ else #Range of k, multiple iterations, sorted by run
 
 	fi
 fi
+
+exit 0
